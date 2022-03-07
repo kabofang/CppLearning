@@ -109,3 +109,4 @@ constexpr double m2 = 1.4 * square(c_n) // 正确
 // 总结：在编译期就可以求值的，可以使用constexpr, 在运行期才求值的用const
 ~~~
 
+##### 2.1.5 
