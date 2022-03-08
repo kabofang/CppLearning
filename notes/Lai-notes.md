@@ -1,5 +1,7 @@
 ## C++程序设计语言读书笔记
 
+[TOC]
+
 ### 第一章	致读者
 
 ~~~ markdown
@@ -109,4 +111,206 @@ constexpr double m2 = 1.4 * square(c_n) // 正确
 // 总结：在编译期就可以求值的，可以使用constexpr, 在运行期才求值的用const
 ~~~
 
-##### 2.1.5 
+#### 2.2 用户自定义类型
+
+- 通过基本类型、const修饰符和声明运算符构造出来的类型称为内置类型（built-in type）;内置类型的优点是能够直接有效地展现传统计算机硬件的特性，但是并不能向程序员提供便于书写高级应用程序的上层特性。
+- C++语言扩充内置类型和操作，提供了一套成熟的抽象机制，程序员可以使用这套机制实现其所需的上层功能；
+- C++抽象机制的目的：主要是让程序员能够设计并实现他们自己的数据类型，这些数据类型具有恰当的表现形式和操作，程序员可以简单优雅地使用它们。
+- 为了与内置类型区别，C++ 的抽象机制构建的新类型称为用户自定义类型，如结构、类和枚举等等；
+
+##### 2.2.1 结构类型
+
+​	会分割数据及其操作
+
+~~~c++
+// 结构定义
+struct Vector {
+    int size;
+    int *elem;
+};
+// 结构初始化
+Vector *init(int n) {
+    Vector *v = new Vector();
+    v->elem = new int[n];
+    v->size = n;
+    return v;
+}
+// 销毁结构
+void clear(Vector *v) {
+    if (v == nullptr) return ;
+    delete[] v->elem;
+    delete v;
+    return ;
+} 
+~~~
+
+##### 2.2.2 类
+
+​	表示形式和操作之间建立紧密的联系，易于使用和修改，数据的使用具有一致性，且表示形式对用户时不可见的；把类型的接口（所有代码都可使用的部分）与其实现（对其他不可访问的数据具有访问权限）分离开；类含有一系列成员（member）,可能是数据、函数或者类型。类的public成员定义该类的接口，private成员则只能通过接口访问。
+
+~~~c++
+class Vector {
+public:
+    Vector(int n = 0) : cnt(n) {
+        elem = new int[n];
+    }
+    ~Vector() {
+        if (elem == nullptr) return ;
+        delete[] elem;
+        elem = nullptr;
+    }
+    int size() { return cnt; }
+    int &operator[](int i) { return elem[i]; }
+private:    
+    int *elem;
+    int cnt;
+};
+~~~
+
+##### 2.2.3 枚举
+
+​	常用于描述规模较小的整数集合，通过使用有指代意义的枚举值名字可提高代码的可读性，降低出错的风险。
+
+~~~c++
+// enum 后面的class指明了枚举是强类型的，且它的枚举值位于指定的作用域中。
+enum class Color {red, blue, green};
+enum class Light {green, yellow, red};
+Color x = red; 					// 错误：哪个red?
+Color y = Light::red; 			// 错误：这个red不是Color的对象
+Color z = Color::red; 			// OK
+// 不可以隐式转换  
+int i = Color::red; 			// 错误
+Color c = 2; 					// 错误
+// 去掉class， 可以隐式转换 
+~~~
+
+#### 2.3 模块化
+
+- 一个C++程序可能包含许多独立开发的部分（如函数、用户自定义类型、类层次和模板）
+- 构建C++程序的关键就是清晰地定义组成部分之间的交互关系；第一步是将某个部分的接口和实现分离开。
+
+##### 2.3.1 分离编译
+
+- 用户代码只能看见所用类型和函数的声明，它们的定义放置在分离的源文件中，并被分别编译；
+- 分离编译机制有助于将一个程序组织成一组半独立的代码片段；优点是编译时间减到最少，并且强制要求程序中逻辑独立的部分分离开来（降低出错率）；
+
+~~~c++
+// vector22.h 头文件
+#ifndef _VECTOR2_H
+#define _VECTOR2_H
+class Vector {
+public:
+    Vector(const int&);
+    ~Vector();
+    int size();
+    int &operator[](int);
+private:
+    int cnt;
+    int *elem;
+};
+#endif
+~~~
+
+~~~c++
+// vector2.cpp 文件
+#include "vector2.h"
+
+Vector::Vector(const int& n = 0) : cnt(n) {
+    elem = new int[10];
+}
+Vector::~Vector() {
+    if (elem == nullptr) return ;
+    delete[] elem;
+    elem = nullptr;
+}
+int Vector::size() { return cnt; }
+int& Vector::operator[](int i) { 
+    return elem[i]; 
+}
+~~~
+
+~~~c++
+// main.cpp 文件
+#include <iostream>
+#include "vector2.h"
+using namespace std;
+int main() {
+    const int n = 5;
+    Vector v(n);
+    for (int i = n - 1; i >= 0; --i) {
+        cin >> v[i];
+    }
+    for (int i = 0; i < n; ++i) {
+        i && cout << ", ";
+        cout << v[i];
+    }
+    cout << endl;
+    return 0;
+}
+~~~
+
+##### 2.3.2 名字空间
+
+- 名字空间（namespace）的机制，一方面表达某些声明是属于一个整体的，另一方面表面它们的名字不会与其他名字空间中的名字冲突。
+
+~~~c++
+#define BEGIN(x) namespace x {
+#define END(x) }
+
+BEGIN(test)
+int main(int n) {
+    return n * n;
+}     
+END(test)
+int main() {
+    cout << test::main(4) << endl;
+    return 0;
+}
+~~~
+
+##### 2.3.3 错误处理
+
+- 异常
+
+~~~c++
+int &Vector::operator[](int i) {
+    if (i < 0 || i >= size) throw out_of_range{"Vector::operator"};
+    return elem[i];
+}
+void func(Vector &v) {
+	// ... 
+    try { 					// 此处的异常将被后面定义的处理模块处理
+        v[v.size()] = 7; 	// 试图越界访问
+    } catch (out_of_range) {// 发现越界错误
+        // 在此处理越界错误
+    }
+    // ...
+}
+~~~
+
+- 不变式： 构造函数和析构函数支撑的资源管理概念的基础
+
+~~~c++
+Vector::Vector(int n) {
+    if (n < 0) throw length_error{};
+    // ...
+}
+void test() {
+    try { 					// 此处的异常将被后面定义的处理模块处理
+        Vector v(-27); 	// 试图越界访问
+    } catch (std::length_error) { // 发现错误
+        // 在此处理负值错误
+    } catch (std::bad_alloc) {
+        // 处理内存耗尽错误
+    }
+}
+~~~
+
+- 静态断言：程序异常负责报告运行时发生的错误
+
+~~~c++
+// 如果条件为true的话， 输出断言信息
+static_assert(4 <= sizeof(int), "intergers are too small");
+~~~
+
+### 第三章	C++抽象机制
