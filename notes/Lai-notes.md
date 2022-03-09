@@ -314,3 +314,150 @@ static_assert(4 <= sizeof(int), "intergers are too small");
 ~~~
 
 ### 第三章	C++抽象机制
+
+~~~markdown
+不必惊慌失措！
+                                     ————道格拉斯 ● 亚当斯
+~~~
+
+#### 3.1 类
+
+- C++最核心的语言特性就是类；类是一种用户自定义的数据类型，用于程序代码中表示某种概念。
+- 本质来说，基础类型、运算符和语句之外的所有语言特性存在的目的是帮助程序员定义更好的类以及更方便地使用它们。
+- 3种重要的类的基本支持：具体类、抽象类、类层次中的类。 
+
+##### 3.1.1 具体类型（concrete type）
+
+- 具体类型的典型特征：它的表现形式是其定义的一部分；表现形式只不过是一个或几个指向保持在别处的数据的指针，这种表现形式出现在具体类的每一个对象中；这使得实现可以在时空上达到最优；
+
+~~~markdown
+1. 把具体类型的对象放置在栈、静态分配的内存或其他对象中
+2. 直接引用对象（而非仅仅通过指针或引用）
+3. 创建对象后立即进行完整的初始化（如使用构造函数）
+4. 拷贝对象
+~~~
+
+###### 3.1.1.1 一种算术类型：复数类（complex）
+
+~~~c++
+class complex {
+private:
+    double m_re, m_im;
+public:
+    complex(double re = 0.0, double im = 0.0) : m_re(re), m_im(im) {}
+
+    double get_real() const { return m_re; }
+    void set_real(double d) { m_re = d; }
+    double get_imag() const { return m_im; }
+    void set_real(double d) { m_im = d;}
+
+    complex& operator+=(const complex& z) {
+        this->m_re += z.m_re;
+        this->m_im += z.m_im;
+        return *this;
+    }
+    complex& operator-=(cons complex& z) {
+        this->m_re -= z.m_re;
+        this->m_im -= z.m_im;
+        return *this;
+    }
+    // ...
+};
+~~~
+
+###### 3.1.1.2 容器
+
+- 容器（container）是指一个包含若干元素的对象，因为Vector（前面自定义的类型）的对象都是容器，故Vector是一种容器对象。
+
+- 资源获取即初始化（RAII）：在构造函数中请求资源，然后再析构函数中释放它们的技术；该技术可以避免在普通代码中分配内存，而是把分配操作隐藏在行为良好的抽象的实现内部；避免“裸new”和“裸delete”可以远离各种潜在风险，避免资源泄露。
+
+###### 3.1.1.3 初始化容器
+
+- 初始化器列表构造函数（Initializer-list constructor）: 使用元素的列表进行初始化；
+
+~~~c++
+// 用一个列表初始化
+Vector::Vector(std::initializer_list<int> lst) 
+    : cnt{lst.size()}, elem{new int[lst.size()]} 
+{
+	copy(lst.begin(), lst.end(), elem); 	// 把lst的内容复制到elem中；        
+}
+
+int main() {
+    Vector v = {1, 2, 3, 4, 5};
+    return 0;
+}
+~~~
+
+##### 3.1.2 抽象类型（abstract type）
+
+- 具体类型（concrete type）: 复数类（complex）和 Vector（容器）等类型，它们的表现形式属于定义的一部分， 与内置类型很相似；
+- 抽象类型（abstract type）:将使用者与类的实现细节完全隔离开来；分离接口与表现形式并且放弃纯局部变量；我们对抽象类型的表现形式一无所知，故必须从自由存储为对象分配空间，然后通过引用或指针访问对象。
+- 含有纯虚函数的类称为抽象类（abstract class）;
+
+~~~c++
+// 为Container类设计接口
+class Container {
+public:
+    virtual int size(); 				// 虚函数
+    virtual int& operator[](int) = 0;   // 纯虚函数
+    virtual ~Container() {}             // 虚析构函数
+};
+~~~
+
+- 如果一个类负责为其他一些类提供接口，那么把前者称为多态类型（polymorphic type）;
+
+##### 3.1.3 虚函数（virtual function）
+
+- 编译器将虚函数的名字转换成函数指针表中对应的索引值，这张表就是所谓的虚函数表（vtbl）;
+- 每个含有虚函数的类都有它自己的虚函数表(vtbl)用于辨识虚函数；
+
+~~~c++
+// Container类设计为接口
+class Container {
+public:
+    //...
+    virtual int& operator[](int) = 0;
+    //...
+};
+// Vector类继承Container类
+class Vector : public Container {
+public:
+    //...
+    int &operator[](int i) { return v[i]; } // 重写
+    //...
+};
+// List类继承Container类
+class List : public Container {
+public:
+    //...
+    int &operator[](int i) { 	// 重写
+        for (auto &x : lst) {
+            return x;
+        }
+    }
+    //...
+}
+// 普通函数 use
+void use(Container& c) {
+    for (int i = 0; i < c.size(); ++i) {
+        cout << c[i] << endl;
+    }
+}
+int main() {
+    Vector vec{1, 2, 3, 4, 5};
+    use(vec);                 		// Container &c = Vector vec;
+    List lst{5, 4, 3, 2, 1};
+    use(lst);						// Container &c = List lst;
+    return 0;
+}
+~~~
+
+##### 3.1.4 类层次（class hierarchy）
+
+- 类层次（class hierarchy）：是指通过继承（派生）创建的一组类，在框架中有序排列；
+- 接口继承（Interface inheritance）：派生类对象可以用在任何需要基类对象的地方。
+- 实现继承（Implementation inheritance）: 基类负责提供可以简化派生类实现的函数或数据
+
+
+
