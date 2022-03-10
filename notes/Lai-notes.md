@@ -459,7 +459,17 @@ int main() {
 - 接口继承（Interface inheritance）：派生类对象可以用在任何需要基类对象的地方。
 - 实现继承（Implementation inheritance）: 基类负责提供可以简化派生类实现的函数或数据
 
+##### 3.1.5 拷贝和移动
 
+- 拷贝
+
+~~~c++
+void test(Vector& v) {
+    Vector v1{v};  		// 拷贝初始化
+    Vector v2;
+    v3 = v2; 			// 拷贝赋值
+}
+~~~
 
 
 
