@@ -459,7 +459,9 @@ int main() {
 - 接口继承（Interface inheritance）：派生类对象可以用在任何需要基类对象的地方。
 - 实现继承（Implementation inheritance）: 基类负责提供可以简化派生类实现的函数或数据
 
-##### 3.1.5 拷贝和移动
+#### 3.2 拷贝和移动
+
+- 默认的拷贝构造函数和拷贝赋值运算符都是浅拷贝， 需要自定义拷贝构造函数（copy constructor） 与 拷贝赋值运算符（copy assignment）达到深拷贝；
 
 - 拷贝
 
@@ -471,5 +473,221 @@ void test(Vector& v) {
 }
 ~~~
 
+##### 3.2.1 类对象的拷贝操作可以通过两个成员来定义：拷贝构造函数（copy constructor） 与 拷贝赋值运算符（copy assignment）
 
+~~~c++
+// 拷贝构造函数
+Vector::Vector(const Vector& v) : cnt(v.cnt), elem(new int[cnt]) {
+    for (int i = 0; i < cnt; ++i) {
+        elem[i] = v.elem[i];
+    }
+}
+// 拷贝赋值运算符
+Vector& Vector::operator=(const Vector& v) {
+    int *p = new int[v.cnt];
+    for (int i = 0; i < v.cnt; ++i) {
+        p[i] = v.elem[i];
+    }
+    delete[] this->elem;
+    this->elem = p;
+    this->cnt = v.cnt;
+    return *this;
+}
+~~~
 
+##### 3.2.2 移动构造（move constructor）
+
+~~~c++
+Vector::Vector(Vector&& v) : cnt(v.cnt), elem(v.elem) {
+    v.cnt = 0;
+    v.elem = nullptr;
+}
+
+std::move() 		// 可以将值强转成右值
+std::forward<T>() 	// 按照T的类型继承
+~~~
+
+##### 3.2.3 资源管理
+
+- 通过构造函数、拷贝操作、、移动操作和析构函数，程序员就能对受控资源的全生命周期进行管理。
+- 移动构造函数允许对象从一个作用域简单便捷地移动到另一个作用域。
+- 把指针转化为资源句柄，可以实现强资源安全，可以消除资源泄露。
+
+##### 3.2.4 抑制操作
+
+- 尽量避免使用默认的拷贝和移动操作，最好的做法删除掉默认的拷贝和移动操作。
+
+~~~c++
+class Vector {
+public:
+    Vector(const Vector& ) = delete;
+    Vector& operator=(const Vector&) = delete;
+        
+    Vector(const Vector&& ) = delete;
+    Vector(const Vector&& ) = delete;
+}
+~~~
+
+- 如果在类中显式地声明了析构函数，则移动操作将不会隐式地生成；故即使编译器可以隐式地提供析构函数，也最好自己定义一析构函数。
+
+#### 3.3 模板
+
+- 模板是一种编译时的机制，与“手工编写的代码”相比，并不会产生任何额外的运行时开销
+
+##### 3.3.1 参数化类型
+
+~~~c++
+// template<typename T> 指明T是该声明的形参
+template<typename T>
+class Vector {
+private:
+    T* elem;
+    int cnt;
+public:
+    //...
+    T& operator[](int);
+    //...
+}
+// 成员函数的定义
+template<typename T>
+T& Vector<T>::operator[](int i) {
+    //...
+}
+// 使用方式
+Vector<int> vi(10);
+Vector<double> vd(20);
+~~~
+
+~~~c++
+// 定义begin()和end（）函数，使Vector支持范围for循环
+template<typename T>
+T* begin(Vector<T>& v) {
+    return &v[0];
+}
+
+template<typename T>
+T* end(Vector<T>& v) {
+    return v.begin() + v.size();
+}
+
+for (auto &x : Vec) {
+    //...
+}
+
+~~~
+
+##### 3.3.2 函数模板
+
+~~~c++
+template<typename T, typename U>
+U func(const T& Vec, U sum) {
+    for (auto v : Vec) {
+        sum += v;
+    }
+    return sum;
+}
+~~~
+
+##### 3.3.3 函数对象（functor）
+
+- 重载括号（），可以实现函数对象
+
+- lambda表达式，可以生产一个函数对象
+
+~~~c++
+[](){}
+// [] 是一个捕获列表， [&x]表示所用的局部名字x将通过引用访问， [=x] 表示给函数对象传递一个x的拷贝
+// [] 表示什么也不捕获，[&]表示捕获所有通过引用的局部名字，[=] 表示所有以值访问的局部名字
+~~~
+
+##### 3.3.4 可变参数模板（variadic template）
+
+- 实现可变参数模板的关键：当你传给它多个参数时，谨记把第一个参数和其他参数区分对待。
+
+~~~c++
+template<typename T, typename... ARGS>
+void func(T head, ARGS... tail) {
+    print(head); 	// 对head做某些操作
+    func(ARGS..); 	// 再次处理tail
+}
+
+~~~
+
+##### 3.3.5 别名
+
+~~~c++
+// 将unsigned int 重命名为 size_t
+using size_t = unsigned int;
+~~~
+
+### 第四章	容器与算法
+
+~~~markdown
+当无知只是瞬间， 又何必浪费时间学习呢？
+													————霍布斯
+~~~
+
+#### 4.1 字符串 < string >
+
+- string对象是可变的，重载了各种运算符和操作符。
+
+#### 4.2 I/O流 < iostream >
+
+##### 4.2.1 输出 （ostream类）
+
+- cout对象： 标准输出流， cerr对象：错误输出流
+
+##### 4.2.1 输入 （istream类）
+
+- cin对象：标准输入流
+- getline()读取一整行（包括换行符）
+
+##### 4.2.3 自定义类型的I/O
+
+~~~c++
+// 重载输出运算符<< 
+ostream& operator<<(ostream& out, const Vector& v) {
+    return out << "(" << v << ")";
+}
+// 重载输入运算符>>
+istream& operator>>(istream& in, const Vetor& v) {
+    //...
+    return in;
+}
+
+~~~
+
+#### 4.3 容器
+
+~~~c++
+vector<T>;   				// 可变大小向量
+list<T>; 					// 双向链表
+forward_lis<T>;				// 单向链表
+deque<T>; 					// 双端队列
+set<T>; 					// 集合
+multiset<T>; 				// 允许重复值的set
+map<K, V>; 					// 关联数组 
+muiltmap<K, V>; 			// 允许重复值的map
+unordered_map<K, V>; 		// 采用哈希搜索的map
+unordered_multimap<K, V>; 	// 采用哈希搜索的muiltmap
+unordered_set<T>; 			// 采用哈希搜索的set
+unordered_muiltset<T>; 		// 采用哈希搜索的muiltset
+~~~
+
+#### 4.4 算法
+
+##### 4.4.1 迭代器
+
+- 迭代器的一个重要的作用是分离算法和容器。算法通过迭代器来处理数据，但它对存储的容器一无所知。容器对算法也是一无所知，它所做的全部事情就是按需求提供迭代器（如 begin()和end()）。这种数据存储和算法分离的模型催生出非常通用和灵活的软件。
+- 任何一种特定的迭代器都是某种类型的对象。
+
+### 第五章	并发与实用功能
+
+~~~markdown
+要想让别人听得明白，言辞必须简洁。
+										————西塞罗		
+~~~
+
+#### 5.1 资源管理
+
+##### 5.1.1 unique_ptr 与 shared_ptr
