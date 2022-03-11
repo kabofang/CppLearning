@@ -688,6 +688,44 @@ unordered_muiltset<T>; 		// 采用哈希搜索的muiltset
 										————西塞罗		
 ~~~
 
-#### 5.1 资源管理
+#### 5.1 资源管理 < memory >
 
 ##### 5.1.1 unique_ptr 与 shared_ptr
+
+- unique_ptr是一个独立对象或数组的句柄，以资源获取即初始化（RAII）的机制控制对象的生命周期，且通过移动操作对象
+- shared_ptr和unique相似，唯一的区别是shared_ptr的对象使用拷贝操作；某个对象的多个shared_ptr共享该对象的所有权，只有当最后一个shared_ptr被销毁时对象才被消耗。
+- 除非你确实需要共享所有权，否则别轻易使用shared_ptr
+
+~~~c++
+// 使用unique_ptr
+std::unique_ptr<int> up(new int());
+// 使用shared_ptr
+std::shared_ptr<int> fp(new int());
+~~~
+
+#### 5.2 并发 < thread >
+
+- C++提供的并发标准库，并发特性直接建立在操作系统并发机制上，与系统原始机制相比，并不会带来额外的性能开销。
+- 同一进程内的线程会共享该进程内的地址空间，会产生竞争条件。
+
+~~~c++
+// 创建线程执行func函数
+std::thread t1(func);
+t1.join(); 				// 等待线程结束
+~~~
+
+##### 5.2.1 共享数据 < mutex >
+
+- mutex：互斥对象
+- unique_lock的构造函数获取互斥对象（调用m.lock()），如果另一个线程已经获取了互斥对象，则当前线程会等待（阻塞）直至那个线程完成对共享数据的访问。线程完成共享数据的访问，会释放mutex(调用m.unlock()) 
+
+~~~c++
+unique_lock<mutex> lck();
+~~~
+
+##### 5.2.2 等待事件 < condition_variable >
+
+- 生产者与消费者
+
+#### 跳过一部分
+
